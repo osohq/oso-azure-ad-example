@@ -1,23 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
     <h1>Microsoft Identity Python Web App</h1>
-    <h2>Welcome {{ user.get("name") }}!</h2>
+    <h2>Welcome {{ user.display_name }}!</h2>
 
-    {% if config.get("ENDPOINT") %}
-      <li><a href='/graphcall'>Call Microsoft Graph API</a></li>
-    {% endif %}
+    <li>
+      <a href="/docs">Documents</a>
+    </li>
 
-    {% if config.get("B2C_PROFILE_AUTHORITY") %}
-      <li><a href='{{_build_auth_url(authority=config["B2C_PROFILE_AUTHORITY"])}}'>Edit Profile</a></li>
-    {% endif %}
+    <br></br>
+
+    <li>
+      <a href="/user/groups">View Groups</a>
+    </li>
+
+    <li>
+      <a href="/user/manager">View Manager</a>
+    </li>
+
+    <br></br>
+
+    <li>
+      <a href='{{_build_auth_url(authority=config["B2C_PROFILE_AUTHORITY"])}}'
+        >Edit Profile</a
+      >
+    </li>
 
     <li><a href="/logout">Logout</a></li>
-    <hr>
-    <footer style="text-align: right">Powered by MSAL Python {{ version }}</footer>
-</body>
+    <hr />
+    <footer style="text-align: right">
+      Powered by MSAL Python {{ version }}
+    </footer>
+  </body>
 </html>
-

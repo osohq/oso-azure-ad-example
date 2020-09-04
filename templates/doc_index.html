@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <a href="javascript:window.history.go(-1)">Back</a>
+    <h1>Documents</h1>
+
+    {% for id in docs.keys() %}
+    <li><a href="/docs/{{id}}">Doc {{id}}</a></li>
+    {% endfor %}
+
+    <footer style="text-align: right">
+      Powered by MSAL Python {{ version }}
+    </footer>
+  </body>
+</html>
