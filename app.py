@@ -4,11 +4,31 @@ from flask import Flask, render_template, session, request, redirect, url_for
 from flask_session import Session  # https://pythonhosted.org/Flask-Session
 import msal
 import app_config
+from oso import Oso
+from flask_oso import FlaskOso
+
+import document
+from document import Document
+from user import User
 
 
 app = Flask(__name__)
 app.config.from_object(app_config)
 Session(app)
+
+# setup oso
+def get_actor():
+    return session.get("user")
+
+
+oso = Oso()
+flask_oso = FlaskOso(app=app, oso=oso)
+oso.register_class(Document)
+oso.register_class(User)
+oso.load_file("authorization.polar")
+
+flask_oso.set_get_actor(get_actor)
+
 
 # This section is needed for url_for("foo", _external=True) to automatically
 # generate http scheme when this sample is running on localhost,
@@ -23,8 +43,17 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 def index():
     if not session.get("user"):
         return redirect(url_for("login"))
-    print(session.get("user"))
-    return render_template("index.html", user=session["user"], version=msal.__version__)
+    user = session.get("user")
+    return render_template("index.html", user=user, version=msal.__version__)
+
+
+@app.route("/docs/<int:id>", methods=["GET"])
+def get_doc(id):
+    doc = document.find_by_id(id)
+    print(doc)
+    print(oso.is_allowed(get_actor(), request.method, doc))
+    flask_oso.authorize(resource=doc)
+    return str(doc)
 
 
 @app.route("/login")
@@ -54,7 +83,8 @@ def authorized():
         if "error" in result:
             return render_template("auth_error.html", result=result)
         print(result)
-        session["user"] = result.get("id_token_claims")
+        user = User(result.get("id_token_claims"))
+        session["user"] = user
         _save_cache(cache)
     return redirect(url_for("index"))
 
