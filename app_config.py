@@ -35,11 +35,15 @@ REDIRECT_PATH = "/getAToken"  # Used for forming an absolute URL to your redirec
 # The absolute URL must match the redirect URI you set
 # in the app's registration in the Azure portal.
 
-# This is the API resource endpoint
-ENDPOINT = ""  # Application ID URI of app registration in Azure portal
+# You can find more Microsoft Graph API endpoints from Graph Explorer
+# https://developer.microsoft.com/en-us/graph/graph-explorer
+ENDPOINT = (
+    "https://graph.microsoft.com/v1.0/groups"  # This resource requires no admin consent
+)
 
-# These are the scopes you've exposed in the web API app registration in the Azure portal
-SCOPE = []  # Example with two exposed scopes: ["demo.read", "demo.write"]
+# You can find the proper permission names from this document
+# https://docs.microsoft.com/en-us/graph/permissions-reference
+SCOPE = ["https://graph.microsoft.com/.default"]
 
 SESSION_TYPE = (
     "filesystem"  # Specifies the token cache should be stored in server-side session

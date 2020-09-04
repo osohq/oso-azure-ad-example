@@ -50,8 +50,6 @@ def index():
 @app.route("/docs/<int:id>", methods=["GET"])
 def get_doc(id):
     doc = document.find_by_id(id)
-    print(doc)
-    print(oso.is_allowed(get_actor(), request.method, doc))
     flask_oso.authorize(resource=doc)
     return str(doc)
 
@@ -61,7 +59,7 @@ def login():
     session["state"] = str(uuid.uuid4())
     # Technically we could use empty list [] as scopes to do just sign in,
     # here we choose to also collect end user consent upfront
-    auth_url = _build_auth_url(scopes=app_config.SCOPE, state=session["state"])
+    auth_url = _build_auth_url(scopes=[], state=session["state"])
     return render_template("login.html", auth_url=auth_url, version=msal.__version__)
 
 
@@ -75,17 +73,23 @@ def authorized():
         return render_template("auth_error.html", result=request.args)
     if request.args.get("code"):
         cache = _load_cache()
-        result = _build_msal_app(cache=cache).acquire_token_by_authorization_code(
+        id_token_result = _build_msal_app(
+            cache=cache
+        ).acquire_token_by_authorization_code(
             request.args["code"],
-            scopes=app_config.SCOPE,  # Misspelled scope would cause an HTTP 400 error here
             redirect_uri=url_for("authorized", _external=True),
+            scopes=[],
         )
-        if "error" in result:
-            return render_template("auth_error.html", result=result)
-        print(result)
-        user = User(result.get("id_token_claims"))
+        if "error" in id_token_result:
+            return render_template("auth_error.html", result=id_token_result)
+        print(id_token_result)
+        user = User(id_token_result.get("id_token_claims"))
         session["user"] = user
         _save_cache(cache)
+
+        # get the access token for the graph api and store it
+        _get_access_token()
+
     return redirect(url_for("index"))
 
 
@@ -102,14 +106,49 @@ def logout():
 
 @app.route("/graphcall")
 def graphcall():
-    token = _get_token_from_cache(app_config.SCOPE)
+    token = _get_access_token()
     if not token:
         return redirect(url_for("login"))
     graph_data = requests.get(  # Use token to call downstream service
         app_config.ENDPOINT,
-        headers={"Authorization": "Bearer " + token["access_token"]},
+        headers={"Authorization": "Bearer " + token},
     ).json()
     return render_template("display.html", result=graph_data)
+
+
+@app.route("/groups")
+def getUserGroups():
+    token = _get_access_token()
+    id = session.get("user").id
+    groups = requests.post(
+        f"https://graph.microsoft.com/v1.0/users/{id}/getMemberGroups",
+        headers={"Authorization": "Bearer " + token},
+        json={"securityEnabledOnly": "false"},
+    ).json()
+    group_data = []
+    if groups.get("value"):
+        for id in groups.get("value"):
+            group_data.append(
+                requests.get(
+                    f"https://graph.microsoft.com/v1.0/groups/{id}",
+                    headers={"Authorization": "Bearer " + token},
+                )
+                .json()
+                .get("displayName")
+            )
+    return render_template("display.html", result=str(group_data))
+
+
+def _get_access_token():
+    if not session.get("access_token"):
+        result = _build_msal_app(
+            authority="https://login.microsoftonline.com/52c9ac72-820e-4183-9ee8-92567f2752aa",
+        ).acquire_token_for_client(
+            scopes=app_config.SCOPE,  # Misspelled scope would cause an HTTP 400 error here
+        )
+        session["access_token"] = result["access_token"]
+
+    return session.get("access_token")
 
 
 def _load_cache():
