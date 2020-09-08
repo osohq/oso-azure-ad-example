@@ -7,15 +7,21 @@
     <h1>Microsoft Identity Python Web App</h1>
     <h2>Welcome {{ user.display_name }}!</h2>
 
-    {% if config.get("ENDPOINT") %}
-    <li><a href="/graphcall">Call Microsoft Graph API</a></li>
-    {% endif %} {% if config.get("B2C_PROFILE_AUTHORITY") %}
+    <li>
+      <a href="/docs">Documents</a>
+    </li>
+
+    <br></br>
+
+    <li>
+      <a href="/groups">View Groups</a>
+    </li>
+
     <li>
       <a href='{{_build_auth_url(authority=config["B2C_PROFILE_AUTHORITY"])}}'
         >Edit Profile</a
       >
     </li>
-    {% endif %}
 
     <li><a href="/logout">Logout</a></li>
     <hr />

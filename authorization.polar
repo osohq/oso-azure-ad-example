@@ -1,2 +1,3 @@
 allow(actor: User, "GET", doc: Document) if
-    actor.team.lower() in doc.teams;
+    group in actor.groups() and
+    group.lower() in doc.groups;

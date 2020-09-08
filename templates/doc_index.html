@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <h1>Documents</h1>
+
+    {% for id in docs.keys() %}
+    <li><a href="/docs/{{id}}">Doc {{id}}</a></li>
+    {% endfor %}
+
+    <footer style="text-align: right">
+      Powered by MSAL Python {{ version }}
+    </footer>
+  </body>
+</html>
