@@ -1,12 +1,13 @@
 import json
 from flask import session, Blueprint, render_template
-import requests
+from requests_oauthlib import OAuth2Session
 
-import msal_auth
+from msal_auth import get_access_token
+from app_config import GRAPH_URL
 
 
 # Blueprint for users
-bp = Blueprint("user", __name__)
+bp = Blueprint("user", __name__, url_prefix="/user")
 
 
 class User:
@@ -19,33 +20,32 @@ class User:
         self.job_title = id_token_claims.get("jobTitle")
 
     def groups(self):
-        token = msal_auth.get_access_token()
-        id = session.get("user").id
-        groups = requests.post(
-            f"https://graph.microsoft.com/v1.0/users/{id}/getMemberGroups",
-            headers={"Authorization": "Bearer " + token},
+        graph_client = OAuth2Session(token=get_access_token())
+
+        # Get user's groups
+        groups = graph_client.post(
+            f"{GRAPH_URL}/users/{self.id}/getMemberGroups",
             json={"securityEnabledOnly": "false"},
         ).json()
-        group_data = []
+
+        # Get group names
         if groups.get("value"):
-            for id in groups.get("value"):
-                group_data.append(
-                    requests.get(
-                        f"https://graph.microsoft.com/v1.0/groups/{id}",
-                        headers={"Authorization": "Bearer " + token},
-                    )
-                    .json()
-                    .get("displayName")
+            return [
+                graph_client.get(
+                    f"{GRAPH_URL}/groups/{id}",
                 )
-        return group_data
+                .json()
+                .get("displayName")
+                for id in groups.get("value")
+            ]
+        elif groups.get("error"):
+            return [groups]
 
     def manager(self):
-        token = msal_auth.get_access_token()
-        id = session.get("user").id
+        graph_client = OAuth2Session(token=get_access_token())
         manager = (
-            requests.get(
-                f"https://graph.microsoft.com/v1.0/users/{id}/manager",
-                headers={"Authorization": "Bearer " + token},
+            graph_client.get(
+                f"https://graph.microsoft.com/v1.0/users/{self.id}/manager",
             )
             .json()
             .get("displayName")
@@ -60,4 +60,12 @@ def get_current_user():
 @bp.route("/groups")
 def getGroups():
     group_data = get_current_user().groups()
-    return render_template("display.html", result=json.dumps(group_data))
+    return render_template(
+        "display.html", result=json.dumps(group_data), title="My Groups"
+    )
+
+
+@bp.route("/manager")
+def getManager():
+    manager = get_current_user().manager()
+    return render_template("display.html", result=manager, title="My Manager")

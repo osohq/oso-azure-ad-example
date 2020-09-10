@@ -12,7 +12,7 @@ def get_access_token():
     ).acquire_token_for_client(
         scopes=app_config.SCOPE,  # Misspelled scope would cause an HTTP 400 error here
     )
-    return result["access_token"]
+    return result
 
 
 def build_msal_app(cache=None, authority=None):

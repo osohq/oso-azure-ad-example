@@ -37,8 +37,8 @@ REDIRECT_PATH = "/getAToken"  # Used for forming an absolute URL to your redirec
 
 # You can find more Microsoft Graph API endpoints from Graph Explorer
 # https://developer.microsoft.com/en-us/graph/graph-explorer
-ENDPOINT = (
-    "https://graph.microsoft.com/v1.0/groups"  # This resource requires no admin consent
+GRAPH_URL = (
+    "https://graph.microsoft.com/v1.0"
 )
 
 # You can find the proper permission names from this document
