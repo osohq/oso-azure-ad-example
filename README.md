@@ -2,41 +2,56 @@
 page_type: sample
 languages:
 - python
+- html
 products:
 - azure-active-directory
-description: "This sample demonstrates a Python web application calling a Microsoft Graph that is secured using Azure Active Directory."
+description: "This sample demonstrates a Python web application calling a web API that is secured using Azure Active Directory."
 urlFragment: ms-identity-python-webapp
 ---
-# Integrating Microsoft Identity Platform with a Python web application
+# Integrating B2C feature of Microsoft identity platform with a Python web application
 
 ## About this sample
 
-> This sample is also available as a quickstart for the Microsoft identity platform:
-[Quickstart: Add sign-in with Microsoft to a Python web app]("https://docs.microsoft.com/azure/active-directory/develop/quickstart-v2-python-webapp")
+> This sample was initially developed as a web app to demonstrate how to
+> [integrate Microsoft identity platform with a Python web application](https://github.com/Azure-Samples/ms-identity-python-webapp/blob/master/README.md).
+> The same code base can also be used to demonstrate how to integrate Azure Active Directory B2C
+> in a Python web application. You need to follow a few different steps and register your app in your
+> own B2C tenant, and then feed those different settings into the configuration file of this sample.
+
+This sample covers the following:
+
+* Update the application in Azure Active Directory B2C (Azure AD B2C)
+* Configure the sample to use the application registration
+* Enable authentication in a web application using Azure AD B2C
+* Access a web API protected by Azure AD B2C
 
 ### Overview
 
-This sample demonstrates a Python web application that signs-in users with the Microsoft identity platform and calls the Microsoft Graph.
+This sample demonstrates a Python web application that signs in users with the Microsoft identity platform and then calls a web API.
 
-1. The python web application uses the Microsoft Authentication Library (MSAL) to obtain a JWT access token from the Microsoft identity platform (formerly Azure AD v2.0):
-2. The access token is used as a bearer token to authenticate the user when calling the Microsoft Graph.
+1. The python web application uses the Microsoft Authentication Library (MSAL) to obtain an access token from the Microsoft identity platform (formerly Azure AD v2.0):
+2. The access token is used as a bearer token to authenticate the user when calling the web API.
 
 ![Overview](./ReadmeFiles/topology.png)
 
-### Scenario
+## Prerequisites
 
-This sample shows how to build a Python web app using Flask and MSAL Python,
-that signs in a user, and get access to Microsoft Graph.
-For more information about how the protocols work in this scenario and other scenarios,
-see [Authentication Scenarios for Azure AD](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-authentication-scenarios).
+1. [Create an Azure AD B2C tenant](https://docs.microsoft.com/azure/active-directory-b2c/tutorial-create-tenant)
+1. [Register an application in Azure AD B2C](https://docs.microsoft.com/azure/active-directory-b2c/tutorial-register-applications)
+1. [Create user flows in Azure AD B2C](https://docs.microsoft.com/azure/active-directory-b2c/tutorial-create-user-flows)
+1. Have [Python 2.7+ or Python 3+](https://www.python.org/downloads/) installed
 
-## How to run this sample
+## Update the application
 
-To run this sample, you'll need:
+In the tutorial that you completed as part of the prerequisites, you [added a web application in Azure AD B2C](https://docs.microsoft.com/azure/active-directory-b2c/tutorial-register-applications).
+To enable communication with the sample in this tutorial, you need to add a redirect URI to the registration in Azure AD B2C.
 
-> - [Python 2.7+](https://www.python.org/downloads/release/python-2713/) or [Python 3+](https://www.python.org/downloads/release/python-364/)
-> - An Azure Active Directory (Azure AD) tenant. For more information on how to get an Azure AD tenant, see [how to get an Azure AD tenant.](https://docs.microsoft.com/azure/active-directory/develop/quickstart-create-new-tenant)
+* Modify an existing or add a new **Redirect URI**, for example `http://localhost:5000/getAToken` or `https://your_domain.com:5000/getAToken`.
+  * You can use any port or path. Later, we'll configure this sample to match what you register here.
+* On the properties page, record the **Application (client) ID** that you'll use when you configure the web application.
+* Generate a **client secret** for your web application. Record the secret's value for later use when you configure this sample.
 
+## Configure the sample
 
 ### Step 1:  Clone or download this repository
 
@@ -46,102 +61,66 @@ From your shell or command line:
 git clone https://github.com/Azure-Samples/ms-identity-python-webapp.git
 ```
 
-or download and extract the repository .zip file.
+...or download and extract the repository's .ZIP archive.
 
-> Given that the name of the sample is quite long, you might want to clone it in a folder close to the root of your hard drive, to avoid file name length limitations when running on Windows.
+> TIP: To avoid hitting path length restrictions when running on Windows, you might want to clone the sample in a folder close to the root of your hard drive.
 
-### Step 2:  Register the sample application with your Azure Active Directory tenant
+### Step 2:  Install sample dependency
 
-There is one project in this sample. To register it, you can:
+Install the dependencies using pip:
 
-- either follow the steps [Step 2: Register the sample with your Azure Active Directory tenant](#step-2-register-the-sample-with-your-azure-active-directory-tenant) and [Step 3:  Configure the sample to use your Azure AD tenant](#choose-the-azure-ad-tenant-where-you-want-to-create-your-applications)
-- or use PowerShell scripts that:
-  - **automatically** creates the Azure AD applications and related objects (passwords, permissions, dependencies) for you
-  - modify the applications' configuration files.
-
-If you want to use this automation:
-
-1. On Windows, run PowerShell and navigate to the root of the cloned directory
-1. In PowerShell run:
-
-   ```PowerShell
-   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
-   ```
-
-1. Run the script to create your Azure AD application and configure the code of the sample application accordingly.
-1. In PowerShell run:
-
-   ```PowerShell
-   cd .\AppCreationScripts\
-   .\Configure.ps1
-   cd ..
-   ```
-
-   > Other ways of running the scripts are described in [App Creation Scripts](./AppCreationScripts/AppCreationScripts.md)
-
-If you don't want to use this automation, follow the steps below.
-
-#### Choose the Azure AD tenant where you want to create your applications
-
-As a first step you'll need to:
-
-1. Sign in to the [Azure portal](https://portal.azure.com) using either a work or school account or a personal Microsoft account.
-1. If your account is present in more than one Azure AD tenant, select your profile at the top right corner in the menu on top of the page, and then **switch directory**.
-   Change your portal session to the desired Azure AD tenant.
-
-#### Register the Python Webapp (python-webapp)
-
-1. Navigate to the Microsoft identity platform for developers [App registrations](https://go.microsoft.com/fwlink/?linkid=2083908) page.
-1. Select **New registration**.
-1. When the **Register an application page** appears, enter your application's registration information:
-   - In the **Name** section, enter a meaningful application name that will be displayed to users of the app, for example `python-webapp`.
-   - Change **Supported account types** to **Accounts in any organizational directory and personal Microsoft accounts (e.g. Skype, Xbox, Outlook.com)**.
-   - In the Redirect URI (optional) section, select **Web** in the combo-box and enter the following redirect URIs: `http://localhost:5000/getAToken`.
-1. Select **Register** to create the application.
-1. On the app **Overview** page, find the **Application (client) ID** value and record it for later. You'll need it to configure the Visual Studio configuration file for this project.
-1. Select **Save**.
-1. From the **Certificates & secrets** page, in the **Client secrets** section, choose **New client secret**:
-
-   - Type a key description (of instance `app secret`),
-   - Select a key duration of either **In 1 year**, **In 2 years**, or **Never Expires**.
-   - When you press the **Add** button, the key value will be displayed, copy, and save the value in a safe location.
-   - You'll need this key later to configure the project in Visual Studio. This key value will not be displayed again, nor retrievable by any other means,
-     so record it as soon as it is visible from the Azure portal.
-1. Select the **API permissions** section
-   - Click the **Add a permission** button and then,
-   - Ensure that the **Microsoft APIs** tab is selected
-   - In the *Commonly used Microsoft APIs* section, click on **Microsoft Graph**
-   - In the **Delegated permissions** section, ensure that the right permissions are checked: **User.ReadBasic.All**. Use the search box if necessary.
-   - Select the **Add permissions** button
-
-### Step 3:  Configure the sample to use your Azure AD tenant
-
-In the steps below, "ClientID" is the same as "Application ID" or "AppId".
-
-#### Configure the pythonwebapp project
-
-> Note: if you used the setup scripts, the changes below may have been applied for you
-
-1. Open the `app_config.py` file
-1. Find the app key `Enter_the_Tenant_Name_Here` and replace the existing value with your Azure AD tenant name.
-1. You saved your application secret during the creation of the `python-webapp` app in the Azure portal.
-   Now you can set the secret in environment variable `CLIENT_SECRET`,
-   and then adjust `app_config.py` to pick it up.
-1. Find the app key `Enter_the_Application_Id_here` and replace the existing value with the application ID (clientId) of the `python-webapp` application copied from the Azure portal.
-
-
-### Step 4: Run the sample
-
-- You will need to install dependencies using pip as follows:
 ```Shell
 $ pip install -r requirements.txt
 ```
 
-Run app.py from shell or command line. Note that the host and port values need to match what you've set up in your redirect_uri:
+### Step 3:  Configure the sample to use your Azure AD B2C tenant
+
+Configure the pythonwebapp project by making the following changes.
+
+> Note: if you used the setup scripts, the changes below may have been applied for you
+
+1. Use the `app_config_b2c.py` template to replace `app_config.py`.
+1. Open the (now replaced) `app_config.py` file
+
+   * Update the value of `b2c_tenant` with the name of the Azure AD B2C tenant that you created.
+     For example, replace `fabrikamb2c` with `contoso`.
+   * Replace the value of `CLIENT_ID` with the Application (client) ID that you recorded.
+   * Replace the value of `CLIENT_SECRET` with the client secret that you recorded.
+   * Replace the value of `signupsignin_user_flow` with `B2C_1_signupsignin1`.
+   * Replace the value of `editprofile_user_flow` with `B2C_1_profileediting1`.
+   * Replace the value of `resetpassword_user_flow` with `B2C_1_passwordreset1`.
+   * Replace the value of `REDIRECT_PATH` with the path part you set up in **Redirect URIs**.
+     For example, `/getAToken`. It will be used by this sample app to form
+     an absolute URL which matches your full **Redirect URI**.
+   * You do not have to configure the `ENDPOINT` and `SCOPE` right now
+
+## Enable authentication
+
+Run app.py from shell or command line. Note that the host and port values need to match what you've set up in your **Redirect URI**:
 
 ```Shell
 $ flask run --host localhost --port 5000
 ```
+
+You should now be able to visit `http://localhost:5000` and use the sign-in feature.
+This is how you enable authentication in a web application using Azure AD B2C.
+
+## Access a web API
+
+This sample itself does not act as a web API.
+Here we assume you already have your web API up and running elsewhere in your B2C tenant,
+with a specific endpoint, protected by a specific scope,
+and your sample app is already granted permission to access that web API.
+
+Now you can configure this sample to access that web API.
+
+1. Open the (now replaced) `app_config.py` file
+   * Replace the value of `ENDPOINT` with the actual endpoint of your web API.
+   * Replace the value of `SCOPE` with a list of the actual scopes of your web API.
+     For example, write them as `["demo.read", "demo.write"]`.
+
+Now, re-run your web app sample, and you will find a new link showed up,
+and you can access the web API using Azure AD B2C.
 
 ## Community Help and Support
 
@@ -161,9 +140,8 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 ## More information
 
-For more information, see MSAL.Python's [conceptual documentation]("https://github.com/AzureAD/microsoft-authentication-library-for-python/wiki"):
+For more information about MSAL for Python,see its [conceptual documentation wiki](https://github.com/AzureAD/microsoft-authentication-library-for-python/wiki):
 
+For more information about web app scenarios on the Microsoft identity platform, see [Scenario: Web app that calls web APIs](https://docs.microsoft.com/azure/active-directory/develop/scenario-web-app-call-api-overview)
 
-For more information about web apps scenarios on the Microsoft identity platform see [Scenario: Web app that calls web APIs](https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-web-app-call-api-overview)
-
-For more information about how OAuth 2.0 protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
+For more information about how OAuth 2.0 protocols work in this and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
